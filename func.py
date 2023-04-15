@@ -9,7 +9,7 @@ class Aggregate:
 
         cursor = collection.aggregate([
             {
-                '$match': {
+                "$match": {
                     'dt': {
                         '$gte': datetime.fromisoformat(dt_from),
                         '$lte': datetime.fromisoformat(dt_upto)
@@ -56,12 +56,14 @@ class Aggregate:
     @staticmethod
     def get_dataset_day(collection, dt_from: str, dt_upto: str):
 
+        cursor = collection.find({"dt": {"$gte": datetime.fromisoformat(dt_from)}, "$lte": datetime.fromisoformat(dt_upto)})
+
         cursor = collection.aggregate([
             {
                 '$match': {
                     'dt': {
-                        '$gte': datetime.fromisoformat(dt_from),
-                        '$lte': datetime.fromisoformat(dt_upto)
+                        '$gte': ,
+                        '$lte': 
                     }
                 }
 
@@ -77,7 +79,7 @@ class Aggregate:
                     '_id': {
                         'group_type': {'$dateToString': {'format': "%Y-%m-%d", 'date': "$dt"}}
                     },
-                    'dataset': {'$sum': '$value'},
+                    'values': {'$sum': '$value'},
                     'label': {'$min': '$dt'}
                 }
             },
