@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class Aggregate:
@@ -34,7 +34,8 @@ class Aggregate:
                     '_id': 1
                 }
             },
-            {   '$group': {
+            {
+                '$group': {
                     '_id': '$group_type',
                     'dataset': {'$push': '$values'},
                     'labels': {'$push': {'$dateToString': {'date': '$label', 'format': '%Y-%m-%dT%H:%M:%S'}}}
@@ -51,52 +52,55 @@ class Aggregate:
         for doc in cursor:
             return doc
 
-
     # Группировка данных за день
     @staticmethod
     def get_dataset_day(collection, dt_from: str, dt_upto: str):
 
-        cursor = collection.find({"dt": {"$gte": datetime.fromisoformat(dt_from)}, "$lte": datetime.fromisoformat(dt_upto)})
+        dates = []
+        delta = timedelta(days=1)
+        date_start = datetime.fromisoformat(dt_from)
+        date_end = datetime.fromisoformat(dt_upto) + timedelta(days=1)
+        while date_start <= date_end:
+            dates.append(date_start)
+            date_start += delta
 
         cursor = collection.aggregate([
             {
-                '$match': {
-                    'dt': {
-                        '$gte': ,
-                        '$lte': 
+                "$match": {
+                    "dt": {
+                        "$gte": datetime.fromisoformat(dt_from),
+                        "$lte": datetime.fromisoformat(dt_upto)
                     }
                 }
 
             },
             {
-                '$addFields': {
-                    'group_type': 'day',
-                    'label': {'$dateFromParts': {'year': {'$year': "$dt"}, 'month': {'$month': '$dt'}}}
+                "$addFields": {
+                    "group_type": "day",
+                    "label": {"$dateTrunc": {"date": "$dt", "unit": "day"}}
                 }
             },
             {
-                '$group': {
-                    '_id': {
-                        'group_type': {'$dateToString': {'format': "%Y-%m-%d", 'date': "$dt"}}
-                    },
-                    'values': {'$sum': '$value'},
-                    'label': {'$min': '$dt'}
+                "$bucket": {
+                    "groupBy": "$dt",
+                    "boundaries": dates,
+                    "default": "Other",
+                    "output": {
+                        "values": {"$sum": "$value"},
+                        "label": {"$min": "$label"}
+                    }
                 }
             },
             {
-                '$sort': {
-                    '_id': 1
-                }
-            },
-            {   '$group': {
-                    '_id': '$group_type',
-                    'dataset': {'$push': '$values'},
-                    'labels': {'$push': {'$dateToString': {'date': '$label', 'format': '%Y-%m-%dT%H:%M:%S'}}}
+                "$group": {
+                    "_id": "$group_type",
+                    "dataset": {"$push": "$values"},
+                    "labels": {"$push": {"$dateToString": {"date": "$label", "format": "%Y-%m-%dT%H:%M:%S"}}}
                 }
             },
             {
-                '$project': {
-                    '_id': 0,
+                "$project": {
+                    "_id": 0,
 
                 }
             },
